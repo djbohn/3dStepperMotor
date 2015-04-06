@@ -1,0 +1,93 @@
+// Download app from Google app store: bluetooth rc contoller (it’s blue with a car)
+
+char blueToothVal;      // value coming in from blueTooth
+char lastValue;             // to check if last value is then same as new value coming in
+int speed = 25;             // default speed (25 rpm)
+
+#include <AFMotor.h>   // library to use Arduino Motor Shield from Adafruit
+AF_Stepper motor(16, 1);  // declare motor for one direction (forward/backward)
+AF_Stepper motor2(16, 2); // declare motor for another direction (left/right)
+// 16 = how many steps in one revolution. 2 = which motor on motor shield
+ 
+void setup()
+{
+  Serial.begin(9600); // for input from blueTooth
+ 
+  motor.setSpeed(speed);  // set speed to 25 rpm
+  motor.release();
+  
+  motor2.setSpeed(speed); // set speed to 25 rpm
+  motor2.release(); 
+}
+ 
+void loop()
+{
+  if (Serial.available()) 
+  {
+     blueToothVal = Serial.read(); // read value from blueTooth
+  } 
+  
+  if (blueToothVal=='B') // backward
+  {
+     motor2.release();   // be sure to release the other direction first
+     motor.step(4, FORWARD, DOUBLE); // step 4 times. 
+     // this can be modified to do more steps when button pressed once if you want
+  }
+  else if (blueToothVal=='F') // forward
+  {
+     motor2.release();
+     motor.step(4, BACKWARD, DOUBLE);
+  }
+  else if (blueToothVal=='L') // left
+  {
+     motor.release();     
+     motor2.step(4, FORWARD, DOUBLE);   
+  }
+  else if (blueToothVal=='R') // right
+  {
+     motor.release();     
+     motor2.step(4, BACKWARD, DOUBLE);       
+  }
+  else if (blueToothVal == 'W') // this is an ecceleration up to 180 rpm
+  {
+     motor.release();
+     if (lastValue == blueToothVal)  // stay at 180 rpm if value hasn't changed
+     {
+        motor2.setSpeed(180);
+        motor2.step(16, FORWARD, DOUBLE);
+     }
+     else
+     {
+        for (int i = 25; i <= 180; i += 5)
+        {
+          motor2.setSpeed(i);    // speed increase by 5 every half revolution     
+          motor2.step(8, FORWARD, DOUBLE);          
+        } 
+     }
+  }
+  else if (blueToothVal == 'U') // acceleration in the other direction.
+  {
+     motor2.release();
+     if (lastValue == blueToothVal)  // stay at 180 rpm if value hasn't changed
+     {
+        motor.setSpeed(180);
+        motor.step(16, FORWARD, DOUBLE);
+     }
+     else
+     {
+        for (int i = 25; i <= 180; i += 5)
+        {
+          motor.setSpeed(i);    // speed increase by 5 every half revolution  
+          motor.step(8, FORWARD, DOUBLE); 
+        } 
+     }
+  }
+
+  // set speeds back to default incase we did an acceleration
+  motor.setSpeed(speed);  
+  motor2.setSpeed(speed);
+  
+  // last value will check if we want to stay at the 180 rpm if input hasn't changed
+  lastValue = blueToothVal;
+  
+}
